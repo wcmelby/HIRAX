@@ -32,6 +32,7 @@ def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, o
     """
     odapi = OceanDirectAPI()
     deviceCount = odapi.find_usb_devices()
+    print('Device count:', deviceCount)
     if deviceCount > 0:
         deviceIds = odapi.get_device_ids()
         device = None
@@ -52,7 +53,7 @@ def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, o
                 except OceanDirectError as err:
                     [errorCode, errorMsg] = err.get_error_details()
                     device = None
-                    #print("readSpectra(): exception at serial# / error / %s / %d = %s" %
+                    # print("readSpectra(): exception at serial# / error / %s / %d = %s" %
                     #     (serialNumber, errorCode, errorMsg))
             if device is not None:
                 break
@@ -75,8 +76,8 @@ def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, o
             for i in range(spectraToRead):
                 spectra = device.get_formatted_spectrum()
                 output.append((serialNumber, spectra))
-                #print("serial#/spectra:  %s = %d, %d, %d, %d \n" %
-                #     (serialNumber, spectra[100], spectra[101], spectra[102], spectra[103]), flush=True)
+                print("serial#/spectra:  %s = %d, %d, %d, %d \n" 
+                      %(serialNumber, spectra[100], spectra[101], spectra[102], spectra[103]), flush=True)
 
             print("Closing device with serial#: %s" % serialNumber)
             device.close_device()

@@ -1,7 +1,7 @@
 import serial
 import csv
 import time
-import os
+import os, sys
 
 # Readout from the Arduino's serial monitor and write to a CSV file. Make sure Arduino IDE serial monitor is closed first
 # Can stop the readout at any time by pressing 'Ctrl + C'
@@ -9,7 +9,9 @@ import os
 # Replace 'COM3' with your Arduino's serial port
 serial_port = 'COM5'
 baud_rate = 9600
-output_file = 'C:/Users/Willi/Documents/Python_Files/Random/Serial_Monitor_Files/Test11.csv'
+os.chdir('./Serial_Monitor_Files')
+output_file = os.path.join(os.getcwd(), 'Test18.csv')
+# output_file = 'C:/Users/Willi/Documents/Python_Files/Random/Serial_Monitor_Files/Test11.csv'
 
 ser = serial.Serial(serial_port, baud_rate)
 time.sleep(2)  # Wait for the serial connection to initialize
