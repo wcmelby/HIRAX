@@ -25,11 +25,13 @@ def read_all_serial_numbers() -> list[str]:
         #     (serialNumber, errorCode, errorMsg))
     return serialNumberList
 
-def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, output: list[float]) -> None:
+# def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, output: list[float]) -> None:
+def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int) -> None:
     """
     This function will be executed in a separate process. This will open the device that matched the 
     given serial number.
     """
+    output = []
     odapi = OceanDirectAPI()
     deviceCount = odapi.find_usb_devices()
     print('Device count:', deviceCount)
@@ -82,6 +84,7 @@ def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, o
             print("Closing device with serial#: %s" % serialNumber)
             device.close_device()
     odapi.shutdown()
+    return output
 
 
 def main():
