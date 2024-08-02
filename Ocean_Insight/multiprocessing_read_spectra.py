@@ -25,6 +25,7 @@ def read_all_serial_numbers() -> list[str]:
         #     (serialNumber, errorCode, errorMsg))
     return serialNumberList
 
+
 # def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, output: list[float]) -> None:
 def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int) -> None:
     """
@@ -78,8 +79,8 @@ def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int) -
             for i in range(spectraToRead):
                 spectra = device.get_formatted_spectrum()
                 output.append((serialNumber, spectra))
-                print("serial#/spectra:  %s = %d, %d, %d, %d \n" 
-                      %(serialNumber, spectra[100], spectra[101], spectra[102], spectra[103]), flush=True)
+                # print("serial#/spectra:  %s = %d, %d, %d, %d \n" 
+                #       %(serialNumber, spectra[100], spectra[101], spectra[102], spectra[103]), flush=True)
 
             print("Closing device with serial#: %s" % serialNumber)
             device.close_device()
