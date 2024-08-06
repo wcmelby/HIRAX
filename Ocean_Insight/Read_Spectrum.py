@@ -1,7 +1,9 @@
 
-import time
+import time, os, csv
+import numpy as np
 from multiprocessing import Process, Manager
 from oceandirect.OceanDirectAPI import OceanDirectAPI, OceanDirectError, Spectrometer
+odapi = OceanDirectAPI()
 
 def read_all_serial_numbers() -> list[str]:
     """
@@ -26,15 +28,61 @@ def read_all_serial_numbers() -> list[str]:
     return serialNumberList
 
 
-# def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, output: list[float]) -> None:
-def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int) -> None:
+def correct_nonlinearity(raw_intensity, nonlinearity_coeffs):
+    """Corrects for nonlinearity using the coefficients provided by the spectrometer."""
+    raw_intensity = np.array(raw_intensity, dtype=float)
+    corrected_intensity = raw_intensity.copy()
+    # corrected_intensity = np.array(corrected_intensity)
+
+    for i, coeff in enumerate(nonlinearity_coeffs):
+        corrected_intensity += coeff * raw_intensity**(i + 1)
+        
+    return corrected_intensity
+
+
+def correct_spectrum(raw_spectrum):
+    """Corrects the spectrum for nonlinearity and converts pixel values to wavelengths."""
+    deviceCount = odapi.find_usb_devices()
+    if deviceCount == 0:
+        raise Exception("No devices found")
+    elif deviceCount > 1:
+        raise Exception("More than one device found")
+    elif deviceCount == 1:
+        device_id = odapi.get_device_ids()
+        if not device_id:
+            raise Exception("No devices found")
+
+    device = odapi.open_device(device_id[0])  # Initialize your device object here
+    spectrometer_advanced = Spectrometer.Advanced(device)
+
+    wavelength_coeffs = spectrometer_advanced.get_wavelength_coeffs()
+    nonlinearity_coeffs = spectrometer_advanced.get_nonlinearity_coeffs()
+    c = wavelength_coeffs
+    num_data_points = len(raw_spectrum) # 3648
+
+    pixels = np.arange(num_data_points)
+    wavelengths = c[0] + c[1] * pixels + c[2] * pixels**2 + c[3] * pixels**3 # polynomial equation to convert pixel values to wavelengths
+
+    correct_spectrum = correct_nonlinearity(raw_spectrum, nonlinearity_coeffs)
+
+    odapi.close_device(device_id[0])
+
+    return wavelengths, correct_spectrum
+
+
+def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, spectrum_file_name : str) -> None:
     """
     This function will be executed in a separate process. This will open the device that matched the 
     given serial number.
+    Returns output (list of spectrum) as well as data in a newly created csv file. 
+    This is set up to just read one spectrometer. 
     """
     output = []
     odapi = OceanDirectAPI()
     deviceCount = odapi.find_usb_devices()
+    os.chdir('./Spectra_Files')
+    spectrum_file = os.path.join(os.getcwd(), spectrum_file_name)
+
     print('Device count:', deviceCount)
     if deviceCount > 0:
         deviceIds = odapi.get_device_ids()
@@ -74,18 +122,32 @@ def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int) -
         if device is not None:
             serialNumber = device.get_serial_number()
             device.set_integration_time(integrationTimeUs)
+            print("Reading spectra with serial#: %s" % serialNumber)
 
-            print("Started reading spectra with serial#: %s" % serialNumber)
-            for i in range(spectraToRead):
+            for i in range(spectraToRead): # take this line out, only one spectru
                 spectra = device.get_formatted_spectrum()
                 output.append((serialNumber, spectra))
-                # print("serial#/spectra:  %s = %d, %d, %d, %d \n" 
-                #       %(serialNumber, spectra[100], spectra[101], spectra[102], spectra[103]), flush=True)
+                data = output[0]
+                raw_spectrum = data[1:]
+                raw_spectrum = raw_spectrum[0]
+
+                # Write the spectra to a csv file
+                with open(spectrum_file, 'w', newline='') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    csv_writer.writerow(['Wavelength', 'Intensity'])  # Write the header
+                    wavelengths = correct_spectrum(raw_spectrum)[0]
+                    spectrum = correct_spectrum(raw_spectrum)[1]
+                    if len(wavelengths) == len(spectrum):
+                        for wavelength, intensity in zip(wavelengths, spectrum):
+                            csv_writer.writerow([wavelength, intensity])
+                    else:
+                        print("Error: Wavelengths and spectrum arrays are not of the same length.")
 
             print("Closing device with serial#: %s" % serialNumber)
             device.close_device()
+
     odapi.shutdown()
-    return output
+    return wavelengths, spectrum
 
 
 def main():
