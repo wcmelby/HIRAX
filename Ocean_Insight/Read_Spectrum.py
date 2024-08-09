@@ -7,7 +7,7 @@ odapi = OceanDirectAPI()
 
 def read_all_serial_numbers() -> list[str]:
     """
-    Read all devices serial number. Later on we assign one serial number for each
+    Read all devices' serial numbers. Later on we assign one serial number for each
     process.
     """
     odapi = OceanDirectAPI()
@@ -78,6 +78,10 @@ def correct_spectrum(raw_spectrum, wavelength_coeffs, nonlinearity_coeffs):
 
 
 def read_spectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, csv_file_name: str):
+    """The main function to take spectral data. 
+    Will use the calibration parameters to match wavelengths and correct nonlinearity, 
+    then takes a certain number of exposures with a given exposure time in microseconds. 
+    Specify the file name for the csv file where the output data will be saved."""
     read_all_serial_numbers()
     odapi.find_usb_devices()
     devId = odapi.get_device_ids()[0]
@@ -106,124 +110,6 @@ def read_spectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, 
     writeSpectraToCSV(wavelengths, all_spectra, csv_file_name)
 
     return wavelengths, all_spectra
-
-
-# def correct_spectrum(raw_spectrum):
-#     """Corrects the spectrum for nonlinearity and converts pixel values to wavelengths."""
-#     deviceCount = odapi.find_usb_devices()
-#     if deviceCount == 0:
-#         raise Exception("No devices found")
-#     elif deviceCount > 1:
-#         raise Exception("More than one device found")
-#     elif deviceCount == 1:
-#         device_id = odapi.get_device_ids()
-#         if not device_id:
-#             raise Exception("No devices found")
-
-#     device = odapi.open_device(device_id[0])  # Initialize your device object here
-#     spectrometer_advanced = Spectrometer.Advanced(device)
-
-#     wavelength_coeffs = spectrometer_advanced.get_wavelength_coeffs()
-#     nonlinearity_coeffs = spectrometer_advanced.get_nonlinearity_coeffs()
-#     c = wavelength_coeffs
-#     num_data_points = len(raw_spectrum) # 3648
-
-#     pixels = np.arange(num_data_points)
-#     wavelengths = c[0] + c[1] * pixels + c[2] * pixels**2 + c[3] * pixels**3 # polynomial equation to convert pixel values to wavelengths
-
-#     correct_spectrum = correct_nonlinearity(raw_spectrum, nonlinearity_coeffs)
-
-#     odapi.close_device(device_id[0])
-
-#     return wavelengths, correct_spectrum
-
-
-# def readSpectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, spectrum_file_name : str) -> None:
-#     """
-#     This function will be executed in a separate process. This will open the device that matched the 
-#     given serial number.
-#     Returns output (list of spectrum) as well as data in a newly created csv file. 
-#     This is set up to just read one spectrometer. 
-#     """
-#     output = []
-#     odapi = OceanDirectAPI()
-#     deviceCount = odapi.find_usb_devices()
-#     os.chdir('./Spectral_Files')
-#     spectrum_file = os.path.join(os.getcwd(), spectrum_file_name)
-
-#     print('Device count:', deviceCount)
-#     if deviceCount > 0:
-#         deviceIds = odapi.get_device_ids()
-#         device = None
-#         openDeviceRetry = 0
-
-#         #attempt to reprobe and open the device at most 3 times before bailing out.
-#         while device is None and openDeviceRetry < 3:
-#             for devId in deviceIds:
-#                 try:
-#                     device = odapi.open_device(devId)
-#                     devSerialNumber = device.get_serial_number()
-
-#                     if devSerialNumber == serialNumber:
-#                         break
-#                     else:
-#                         device.close_device()
-#                         device = None
-#                 except OceanDirectError as err:
-#                     [errorCode, errorMsg] = err.get_error_details()
-#                     device = None
-#                     # print("readSpectra(): exception at serial# / error / %s / %d = %s" %
-#                     #     (serialNumber, errorCode, errorMsg))
-#             if device is not None:
-#                 break
-#             else:
-#                 #re-probe for unopened devices again
-#                 time.sleep(1)
-#                 deviceCount = odapi.find_usb_devices()
-
-#                 if deviceCount == 0:
-#                     print("ERROR: no device found. Cannot open device with serial number =  %s" % serialNumber)
-#                     break
-#                 deviceIds = odapi.get_device_ids()
-#                 openDeviceRetry = openDeviceRetry + 1
-
-#         if device is not None:
-#             serialNumber = device.get_serial_number()
-#             device.set_integration_time(integrationTimeUs)
-#             print("Reading spectra with serial#: %s" % serialNumber)
-
-#             all_spectra = []
-
-#             for i in range(spectraToRead): 
-#                 spectra = device.get_formatted_spectrum()
-#                 output.append((serialNumber, spectra))
-#                 data = output[0]
-#                 raw_spectrum = data[1:]
-#                 raw_spectrum = raw_spectrum[0]
-#                 wavelengths = correct_spectrum(raw_spectrum)[0]
-#                 spectrum = correct_spectrum(raw_spectrum)[1]
-#                 all_spectra.append(spectrum)
-
-#                 # Write the spectra to a csv file
-#                 with open(spectrum_file, 'w', newline='') as csvfile:
-#                     csv_writer = csv.writer(csvfile)
-#                     header = ['Wavelength'] + [f'Spectrum_{i+1}' for i in range(spectraToRead)]
-#                     csv_writer.writerow(header)  # Write the header
-
-#                     for i in range(len(wavelengths)):
-#                         row = [wavelengths[i]] + [all_spectra[j][i] for j in range(spectraToRead)]
-#                         csv_writer.writerow(row)
-#                     # if len(wavelengths) == len(spectrum):
-#                     #     for wavelength, intensity in zip(wavelengths, spectrum):
-#                     #         csv_writer.writerow([wavelength, intensity])
-#                     # else:
-#                     #     print("Error: Wavelengths and spectrum arrays are not of the same length.")
-
-#             print("Closing device with serial#: %s" % serialNumber)
-#             device.close_device()
-
-#     odapi.shutdown()
-#     return wavelengths, spectrum
 
 
 def main():
