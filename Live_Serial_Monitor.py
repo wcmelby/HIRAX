@@ -10,7 +10,7 @@ import os
 serial_port = 'COM5'
 baud_rate = 9600
 os.chdir('./Serial_Monitor_Files')
-output_file = os.path.join(os.getcwd(), 'Test20.csv')
+output_file = os.path.join(os.getcwd(), 'Test30.csv')
 # output_file = 'C:/Users/Willi/Documents/Python_Files/Random/Serial_Monitor_Files/Test11.csv'
 
 ser = serial.Serial(serial_port, baud_rate)

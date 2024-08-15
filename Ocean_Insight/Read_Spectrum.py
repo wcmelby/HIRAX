@@ -5,6 +5,8 @@ from multiprocessing import Process, Manager
 from oceandirect.OceanDirectAPI import OceanDirectAPI, OceanDirectError, Spectrometer
 odapi = OceanDirectAPI()
 
+# Functions useful for reading spectra from the Ocean Insight HR4Pro spectrometer
+
 def read_all_serial_numbers() -> list[str]:
     """
     Read all devices' serial numbers. Later on we assign one serial number for each
@@ -94,9 +96,6 @@ def read_spectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, 
     spectrometer_advanced = Spectrometer.Advanced(device)
     wavelength_coeffs = spectrometer_advanced.get_wavelength_coeffs()
     nonlinearity_coeffs = spectrometer_advanced.get_nonlinearity_coeffs()
-
-    # test_array = [2, 5, 10, 100, 1000]
-    # print("test array", correct_spectrum(test_array, wavelength_coeffs, nonlinearity_coeffs)[1])
     
     all_spectra = [[] for _ in range(spectraToRead)]
     device.set_integration_time(integrationTimeUs)
@@ -112,37 +111,37 @@ def read_spectra(serialNumber: str, integrationTimeUs: int, spectraToRead: int, 
     return wavelengths, all_spectra
 
 
-def main():
-    serialNumberList = read_all_serial_numbers()
+# def main():
+#     serialNumberList = read_all_serial_numbers()
 
-    print("Device Serial Numbers:  %s" % ', '.join(map(str, serialNumberList)) )
+#     print("Device Serial Numbers:  %s" % ', '.join(map(str, serialNumberList)) )
 
-    if len(serialNumberList) == 0:
-        print("No device found.")
-    else:
-        processList = []
-        queueList = []
-        with Manager() as mgr:
-            for serialNumber in serialNumberList:
-                output = mgr.list()
-                queueList.append(output)
-                processList.append(Process(target=read_spectra, args=(serialNumber, 100000, 20, output)))
+#     if len(serialNumberList) == 0:
+#         print("No device found.")
+#     else:
+#         processList = []
+#         queueList = []
+#         with Manager() as mgr:
+#             for serialNumber in serialNumberList:
+#                 output = mgr.list()
+#                 queueList.append(output)
+#                 processList.append(Process(target=read_spectra, args=(serialNumber, 100000, 20, output)))
 
-            #run all process and read spectra
-            for processValue in processList:
-                processValue.start()
+#             #run all process and read spectra
+#             for processValue in processList:
+#                 processValue.start()
 
-            #wait for all process to complete
-            for processValue in processList:
-                processValue.join()
+#             #wait for all process to complete
+#             for processValue in processList:
+#                 processValue.join()
 
-            #print all spectra
-            for queueValue in queueList:
-                print("Queue size =  %d" % len(queueValue), flush=True )
-                for (serialNumber, spectra) in queueValue:
-                    print("%s ==> %d, %d, %d" % (serialNumber, spectra[100], spectra[101], spectra[102]), flush=True)
+#             #print all spectra
+#             for queueValue in queueList:
+#                 print("Queue size =  %d" % len(queueValue), flush=True )
+#                 for (serialNumber, spectra) in queueValue:
+#                     print("%s ==> %d, %d, %d" % (serialNumber, spectra[100], spectra[101], spectra[102]), flush=True)
 
-    print("****** end of program ******")
+#     print("****** end of program ******")
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
